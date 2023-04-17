@@ -1,19 +1,7 @@
 #include <math.h>
+#include <stdlib.h>
 
-#define mth_E 2.7182818284590452354
-
-struct activation_function_info
-{
-    float (*function)(float);
-    float (*function_derivative)(float);
-};
-
-struct functions_list
-{
-    int size;
-    float *func_list;
-};
-
+#include "functions.h"
 //
 float line(float x)
 {
