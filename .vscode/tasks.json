@@ -2,19 +2,17 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "C/C++: gcc.exe build active file",
-            "command": "D:/msys64/mingw64/bin/gcc.exe",
+            "label": "C/C++: gcc-12 build active file",
+            "command": "/usr/bin/gcc-12",
             "args": [
                 "-fdiagnostics-color=always",
-                "-Wall",
                 "-g",
                 "${file}",
                 "-o",
-                "${fileDirname}\\${fileBasenameNoExtension}.exe",
-                ""
+                "${fileDirname}/${fileBasenameNoExtension}"
             ],
             "options": {
-                "cwd": "D:/msys64/mingw64/bin"
+                "cwd": "${fileDirname}"
             },
             "problemMatcher": [
                 "$gcc"
