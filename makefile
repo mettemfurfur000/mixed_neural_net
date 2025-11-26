@@ -13,6 +13,11 @@ objects_cpp := $(patsubst %.cpp,obj/%.o,$(sources_cpp))
 objects := $(objects_c) $(objects_cpp)
 headers := $(shell cd include;echo *.h)
 
+.PHONY: check_folders
+check_folders:
+	mkdir -p obj
+	mkdir -p build
+
 obj/main_%.o : mains/%.c
 	gcc $(CFLAGS) -c $^ -o $@
 
@@ -25,7 +30,7 @@ obj/%.o : src/%.cpp
 base: $(objects) obj/main_base.o
 	gcc ${CFLAGS} -o build/nn $^ $(LDFLAGS)
 
-all: base
+all: check_folders base
 
 clean:
 	rm build/*
