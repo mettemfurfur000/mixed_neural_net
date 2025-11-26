@@ -1,7 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "funcs.h"
+#include "../include/funcs.h"
 //
 float line(float x)
 {

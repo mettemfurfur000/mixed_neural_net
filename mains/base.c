@@ -1,5 +1,5 @@
-#include "funcs.h"
-#include "nn.h"
+#include "../include/funcs.h"
+#include "../include/nn.h"
 
 int main()
 {

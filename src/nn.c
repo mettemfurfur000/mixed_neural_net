@@ -1,4 +1,4 @@
-#include "nn.h"
+#include "../include/nn.h"
 
 #include <float.h>
 #include <math.h>
