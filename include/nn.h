@@ -44,6 +44,7 @@ void update_weights(neural_net *net, float learning_rate);
 void train_neural_net(neural_net *net, float *inputs, float *expected_outputs, float learning_rate);
 
 void print_neural_net(neural_net *net);
+float neural_net_fitness(neural_net *net, float *inputs, float *expected_outputs);
 
 // Function to find a better activation function - will change the function to a one that fits better right now with a
 // certain chance

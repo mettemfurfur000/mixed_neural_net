@@ -1,4 +1,4 @@
-CFLAGS += -Os -Wall -Wpedantic -fanalyzer -g #-pg -no-pie
+CFLAGS += -O1 -Wall -Wpedantic -fanalyzer -g #-pg -no-pie
 LDFLAGS += -lm -g# -pg
 
 LDFLAGS += -LC:/msys64/mingw64/lib -lmingw32 -lws2_32
@@ -27,11 +27,12 @@ obj/%.o : src/%.c
 obj/%.o : src/%.cpp
 	g++ -std=c++17 $(CFLAGS) -c $^ -o $@
 
+.PHONY: base
 base: $(objects) obj/main_base.o
 	gcc ${CFLAGS} -o build/nn $^ $(LDFLAGS)
 
 all: check_folders base
 
 clean:
-	rm build/*
-	rm obj/*
+	rm -f build/*
+	rm -f obj/*

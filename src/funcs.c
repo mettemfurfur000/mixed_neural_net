@@ -1,7 +1,6 @@
-#include <math.h>
-#include <stdio.h>
-
 #include "../include/funcs.h"
+#include <assert.h>
+#include <math.h>
 //
 float line(float x)
 {
@@ -62,13 +61,8 @@ void init_neural_func_list(neural_func_list *list)
         return;
 
     list->size = 5;
-    list->funcs = malloc(list->size * sizeof(neural_func));
-    if (!list->funcs)
-    {
-        fprintf(stderr, "Failed to allocate memory for neural function list\n");
-        list->size = 0;
-        return;
-    }
+    list->funcs = calloc(list->size, sizeof(neural_func));
+    assert(list->funcs);
 
     list->funcs[FUNC_LINE].f = line;
     list->funcs[FUNC_LINE].f_d = line_d;
