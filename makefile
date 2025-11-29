@@ -1,4 +1,4 @@
-CFLAGS += -O1 -Wall -Wpedantic -fanalyzer -g #-pg -no-pie
+CFLAGS += -O3 -Wall -Wpedantic -fanalyzer -g #-pg -no-pie
 LDFLAGS += -lm -g# -pg
 
 LDFLAGS += -LC:/msys64/mingw64/lib -lmingw32 -lws2_32
@@ -30,6 +30,11 @@ obj/%.o : src/%.cpp
 .PHONY: base
 base: $(objects) obj/main_base.o
 	gcc ${CFLAGS} -o build/nn $^ $(LDFLAGS)
+
+.PHONY: mnist
+mnist: $(objects) obj/main_mnist.o
+	gcc ${CFLAGS} -o build/mnist_solver $^ $(LDFLAGS) -lraylib
+	cp mnist.csv build/
 
 all: check_folders base
 

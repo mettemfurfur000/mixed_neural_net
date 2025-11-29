@@ -10,30 +10,28 @@
 
 #define RAND_FLOAT (rand() / (float)RAND_MAX)
 
-layer *create_layer(int size, neural_func default_func)
+void create_layer(layer *dest, int size, neural_func default_func)
 {
-    layer *l = calloc(1, sizeof(layer));
-    assert(l);
+    // layer *l = calloc(1, sizeof(layer));
+    assert(dest);
 
-    l->size = size;
-    l->neurons = calloc(size, sizeof(neuron));
-    assert(l->neurons);
+    dest->size = size;
+    dest->neurons = calloc(size, sizeof(neuron));
+    assert(dest->neurons);
 
     for (u32 i = 0; i < size; i++)
     {
-        l->neurons[i].bias = (RAND_FLOAT - 0.5f) * 2.0f; // Random bias between -1 and 1
-        l->neurons[i].output = 0.0f;
-        l->neurons[i].activation = default_func;
-        l->neurons[i].delta = 0.0f;
+        dest->neurons[i].bias = (RAND_FLOAT - 0.5f) * 2.0f; // Random bias between -1 and 1
+        dest->neurons[i].output = 0.0f;
+        dest->neurons[i].activation = default_func;
+        dest->neurons[i].delta = 0.0f;
     }
 
-    l->next = NULL;
-    l->prev = NULL;
+    dest->next = NULL;
+    dest->prev = NULL;
 
     // Weights will be initialized after linking layers
-    l->weights = NULL;
-
-    return l;
+    dest->weights = NULL;
 }
 
 void free_layer(layer *l)

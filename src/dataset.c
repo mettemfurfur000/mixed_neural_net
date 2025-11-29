@@ -97,7 +97,8 @@ static int parse_csv_line(char *line, float *values, int max_values)
     return count;
 }
 
-dataset *load_csv_dataset(const char *filepath, int feature_size, int label_size, int skip_header)
+dataset *load_csv_dataset_with_label_pos(const char *filepath, int feature_size, int label_size, bool skip_header,
+                                         int label_position)
 {
     FILE *file = fopen(filepath, "r");
     if (!file)
@@ -176,9 +177,19 @@ dataset *load_csv_dataset(const char *filepath, int feature_size, int label_size
             continue;
         }
 
-        // Copy features and labels
-        memcpy(ds->samples[sample_idx].features, values, feature_size * sizeof(float));
-        memcpy(ds->samples[sample_idx].label, values + feature_size, label_size * sizeof(float));
+        // Copy features and labels based on label position
+        if (label_position == 0)
+        {
+            // Labels at end (default): features first, labels last
+            memcpy(ds->samples[sample_idx].features, values, feature_size * sizeof(float));
+            memcpy(ds->samples[sample_idx].label, values + feature_size, label_size * sizeof(float));
+        }
+        else if (label_position == 1)
+        {
+            // Labels at beginning: labels first, features after
+            memcpy(ds->samples[sample_idx].label, values, label_size * sizeof(float));
+            memcpy(ds->samples[sample_idx].features, values + label_size, feature_size * sizeof(float));
+        }
 
         sample_idx++;
     }
@@ -193,6 +204,60 @@ dataset *load_csv_dataset(const char *filepath, int feature_size, int label_size
     fclose(file);
 
     return ds;
+}
+
+// Backward compatibility wrapper - calls the new function with default (labels at end)
+dataset *load_csv_dataset(const char *filepath, int feature_size, int label_size, bool skip_header)
+{
+    return load_csv_dataset_with_label_pos(filepath, feature_size, label_size, skip_header, 0);
+}
+
+void normalize_labels(dataset *ds, float min_val, float max_val)
+{
+    if (!ds || ds->num_samples == 0)
+        return;
+
+    // Find min and max for each label
+    float *label_min = calloc(ds->label_size, sizeof(float));
+    float *label_max = calloc(ds->label_size, sizeof(float));
+
+    assert(label_min && label_max);
+
+    // Initialize with first sample
+    for (u32 i = 0; i < ds->label_size; i++)
+    {
+        label_min[i] = ds->samples[0].label[i];
+        label_max[i] = ds->samples[0].label[i];
+    }
+
+    // Find min/max
+    for (u32 i = 0; i < ds->num_samples; i++)
+    {
+        for (int j = 0; j < ds->label_size; j++)
+        {
+            if (ds->samples[i].label[j] < label_min[j])
+                label_min[j] = ds->samples[i].label[j];
+            if (ds->samples[i].label[j] > label_max[j])
+                label_max[j] = ds->samples[i].label[j];
+        }
+    }
+
+    // Normalize
+    for (u32 i = 0; i < ds->num_samples; i++)
+    {
+        for (int j = 0; j < ds->label_size; j++)
+        {
+            float range = label_max[j] - label_min[j];
+            if (range > 0.0001f)
+            {
+                float normalized = (ds->samples[i].label[j] - label_min[j]) / range;
+                ds->samples[i].label[j] = normalized * (max_val - min_val) + min_val;
+            }
+        }
+    }
+
+    SAFE_FREE(label_min);
+    SAFE_FREE(label_max);
 }
 
 void normalize_dataset(dataset *ds, float min_val, float max_val)
@@ -328,4 +393,122 @@ void free_train_test_split(train_test_split *split)
         free_dataset(split->train);
         free_dataset(split->test);
     }
+}
+
+data_sample *dataset_random_sample(dataset *ds)
+{
+    u32 sel = rand() % ds->num_samples;
+
+    return &ds->samples[sel];
+}
+
+void label_to_one_hot(float label, float *output, int num_classes)
+{
+    if (!output)
+        return;
+
+    // Initialize all to 0
+    for (int i = 0; i < num_classes; i++)
+    {
+        output[i] = 0.0f;
+    }
+
+    // Convert label (e.g., 5.0) to one-hot encoding
+    int class_idx = (int)(label + 0.5f); // Round to nearest integer
+    if (class_idx >= 0 && class_idx < num_classes)
+    {
+        output[class_idx] = 1.0f;
+    }
+}
+
+prediction_result *network_outputs_to_prediction(float *outputs, int num_outputs)
+{
+    if (!outputs || num_outputs <= 0)
+        return NULL;
+
+    prediction_result *pred = calloc(1, sizeof(prediction_result));
+    if (!pred)
+        return NULL;
+
+    // Copy outputs
+    pred->class_outputs = calloc(num_outputs, sizeof(float));
+    if (!pred->class_outputs)
+    {
+        SAFE_FREE(pred);
+        return NULL;
+    }
+
+    for (int i = 0; i < num_outputs; i++)
+    {
+        pred->class_outputs[i] = outputs[i];
+    }
+
+    // Find the class with highest output
+    float max_output = outputs[0];
+    int max_idx = 0;
+    for (int i = 1; i < num_outputs; i++)
+    {
+        if (outputs[i] > max_output)
+        {
+            max_output = outputs[i];
+            max_idx = i;
+        }
+    }
+
+    pred->predicted_digit = max_idx;
+    pred->confidence = CLAMP(max_output * 100.0f, 0.0f, 100.0f);
+
+    return pred;
+}
+
+void free_prediction_result(prediction_result *pred)
+{
+    if (pred)
+    {
+        SAFE_FREE(pred->class_outputs);
+        SAFE_FREE(pred);
+    }
+}
+
+int expand_dataset_labels(dataset *ds, int new_label_size)
+{
+    if (!ds || new_label_size <= 0)
+        return 0;
+
+    // If new size is same as current, nothing to do
+    if (new_label_size == ds->label_size)
+        return 1;
+
+    // Reallocate each sample's label array
+    for (u32 i = 0; i < ds->num_samples; i++)
+    {
+        // Save old label data
+        float *old_label = ds->samples[i].label;
+        int old_label_size = ds->samples[i].label_size;
+
+        // Allocate new label array
+        float *new_label = calloc(new_label_size, sizeof(float));
+        if (!new_label)
+        {
+            fprintf(stderr, "Failed to allocate new label for sample %d\n", i);
+            return 0;
+        }
+
+        // Copy old label data (if it fits), rest is initialized to 0
+        if (old_label_size > 0 && old_label)
+        {
+            int copy_size = old_label_size < new_label_size ? old_label_size : new_label_size;
+            memcpy(new_label, old_label, copy_size * sizeof(float));
+        }
+
+        // Free old label and update
+        free(old_label);
+        ds->samples[i].label = new_label;
+        ds->samples[i].label_size = new_label_size;
+    }
+
+    // Update dataset label size
+    ds->label_size = new_label_size;
+
+    return 1;
 }

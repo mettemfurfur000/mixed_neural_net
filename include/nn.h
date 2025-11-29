@@ -32,7 +32,8 @@ typedef struct
 } neural_net;
 
 // Function prototypes
-layer *create_layer(int size, neural_func default_func);
+// layer *create_layer(int size, neural_func default_func);
+void create_layer(layer *dest, int size, neural_func default_func);
 void free_layer(layer *l);
 
 neural_net *create_neural_net(int size, layer *layers);
